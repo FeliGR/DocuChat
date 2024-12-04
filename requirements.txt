@@ -30,6 +30,7 @@ google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
 gpt4all==1.0.8
 grpcio==1.57.0
+gradio==2.9.4
 h11==0.14.0
 h5py==3.9.0
 httptools==0.6.0
