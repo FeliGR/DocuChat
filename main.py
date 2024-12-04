@@ -7,11 +7,28 @@ from langchain.llms import Ollama
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains import RetrievalQA
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import sys
 import os
+import logging
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@dataclass
+class QAConfig:
+    """Configuration for the QA system"""
+    pdf_url: str
+    chunk_size: int = 500
+    chunk_overlap: int = 0
+    model_name: str = "llama3.2"
+    theme: str = "dark-peach"
 
 class SuppressStdout:
+    """Context manager to suppress stdout and stderr"""
     def __enter__(self):
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
@@ -23,65 +40,92 @@ class SuppressStdout:
         sys.stdout = self._original_stdout
         sys.stderr = self._original_stderr
 
+class DocumentQA:
+    """Main class for document question-answering system"""
+    
+    def __init__(self, config: QAConfig):
+        """Initialize the QA system with given configuration"""
+        self.config = config
+        self.qa_chain = None
+        self.setup_qa_system()
 
-# Load the PDF and split it into chunks
-loader = OnlinePDFLoader(
-    "https://d18rn0p25nwr6d.cloudfront.net/CIK-0001813756/975b3e9b-268e-4798-a9e4-2a9a7c92dc10.pdf"
-)
-data = loader.load()
+    def setup_qa_system(self) -> None:
+        """Set up the QA system with document loading and processing"""
+        try:
+            logger.info("Loading PDF document...")
+            loader = OnlinePDFLoader(self.config.pdf_url)
+            data = loader.load()
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+            logger.info("Splitting document into chunks...")
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.config.chunk_size,
+                chunk_overlap=self.config.chunk_overlap
+            )
+            all_splits = text_splitter.split_documents(data)
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-all_splits = text_splitter.split_documents(data)
+            logger.info("Creating vector store...")
+            with SuppressStdout():
+                vectorstore = Chroma.from_documents(
+                    documents=all_splits,
+                    embedding=GPT4AllEmbeddings()
+                )
 
-with SuppressStdout():
-    vectorstore = Chroma.from_documents(
-        documents=all_splits, embedding=GPT4AllEmbeddings()
+            template = """Use the following pieces of context to answer the question at the end.
+            If you don't know the answer, just say that you don't know, don't try to make up an answer.
+            Use three sentences maximum and keep the answer as concise as possible.
+            {context}
+            Question: {question}
+            Helpful Answer:"""
+            
+            QA_CHAIN_PROMPT = PromptTemplate(
+                input_variables=["context", "question"],
+                template=template,
+            )
+
+            logger.info("Setting up LLM and QA chain...")
+            llm = Ollama(
+                model=self.config.model_name,
+                callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
+            )
+            self.qa_chain = RetrievalQA.from_chain_type(
+                llm,
+                retriever=vectorstore.as_retriever(),
+                chain_type_kwargs={"prompt": QA_CHAIN_PROMPT},
+            )
+        except Exception as e:
+            logger.error(f"Error setting up QA system: {str(e)}")
+            raise
+
+    def answer_query(self, query: str) -> str:
+        """Process a query and return an answer"""
+        try:
+            if not query.strip():
+                return "Please enter a valid query."
+            logger.info(f"Processing query: {query}")
+            result = self.qa_chain({"query": query})
+            return result["result"]
+        except Exception as e:
+            logger.error(f"Error processing query: {str(e)}")
+            return f"An error occurred while processing your query: {str(e)}"
+
+def main():
+    """Main function to run the Gradio interface"""
+    config = QAConfig(
+        pdf_url="https://d18rn0p25nwr6d.cloudfront.net/CIK-0001813756/975b3e9b-268e-4798-a9e4-2a9a7c92dc10.pdf"
+    )
+    qa_system = DocumentQA(config)
+
+    interface = gr.Interface(
+        fn=qa_system.answer_query,
+        inputs=gr.inputs.Textbox(label="Enter your query"),
+        outputs=gr.outputs.Textbox(label="Answer"),
+        title="Document QA with LangChain and Gradio",
+        description="Ask questions based on the content of the loaded document.",
+        allow_flagging="never",
+        theme=config.theme,
     )
 
-# Define the QA chain
-template = """Use the following pieces of context to answer the question at the end.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Use three sentences maximum and keep the answer as concise as possible.
-{context}
-Question: {question}
-Helpful Answer:"""
-QA_CHAIN_PROMPT = PromptTemplate(
-    input_variables=["context", "question"],
-    template=template,
-)
-
-llm = Ollama(
-    model="llama3.2",
-    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-)
-qa_chain = RetrievalQA.from_chain_type(
-    llm,
-    retriever=vectorstore.as_retriever(),
-    chain_type_kwargs={"prompt": QA_CHAIN_PROMPT},
-)
-
-
-# Define the function to be called by Gradio
-def answer_query(query):
-    if query.strip() == "":
-        return "Please enter a valid query."
-    result = qa_chain({"query": query})
-    return result["result"]
-
-
-# Create Gradio interface
-interface = gr.Interface(
-    fn=answer_query,
-    inputs=gr.inputs.Textbox(label="Enter your query"),
-    outputs=gr.outputs.Textbox(label="Answer"),
-    title="Document QA with LangChain and Gradio",
-    description="Ask questions based on the content of the loaded document.",
-    allow_flagging="never",  # This disables the "Flag" button
-    theme="dark-peach" # huggingface, seafoam, grass, peach, dark, dark-huggingface, dark-seafoam, dark-grass, dark-peach
-)
-
-# Launch the interface
-if __name__ == "__main__":
     interface.launch()
+
+if __name__ == "__main__":
+    main()
