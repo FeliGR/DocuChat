@@ -70,9 +70,9 @@ class DocumentQA:
                     embedding=GPT4AllEmbeddings()
                 )
 
-            template = """Use the following pieces of context to answer the question at the end.
-            If you don't know the answer, just say that you don't know, don't try to make up an answer.
-            Use three sentences maximum and keep the answer as concise as possible.
+            template = """You will work as a chatbot using RAG. You will be given a context and a question.
+            If you don't know the answer based on the context, reply "I do not have the information related to the query",
+            don't try to make up an answer, maybe suggest the user something related to the query based on the contexts.
             {context}
             Question: {question}
             Helpful Answer:"""
@@ -111,7 +111,7 @@ class DocumentQA:
 def main():
     """Main function to run the Gradio interface"""
     config = QAConfig(
-        pdf_url="https://d18rn0p25nwr6d.cloudfront.net/CIK-0001813756/975b3e9b-268e-4798-a9e4-2a9a7c92dc10.pdf"
+        pdf_url="https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf"
     )
     qa_system = DocumentQA(config)
 
