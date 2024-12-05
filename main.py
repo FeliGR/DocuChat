@@ -1,6 +1,7 @@
 import gradio as gr
 from langchain.document_loaders import OnlinePDFLoader
 from langchain.vectorstores import Chroma
+from langchain.document_loaders import PyPDFLoader
 from langchain.embeddings import GPT4AllEmbeddings
 from langchain import PromptTemplate
 from langchain.llms import Ollama
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class QAConfig:
     """Configuration for the QA system"""
-    pdf_url: str
+    pdf_urls: list
     chunk_size: int = 500
     chunk_overlap: int = 0
     model_name: str = "llama3.2"
@@ -52,16 +53,22 @@ class DocumentQA:
     def setup_qa_system(self) -> None:
         """Set up the QA system with document loading and processing"""
         try:
-            logger.info("Loading PDF document...")
-            loader = OnlinePDFLoader(self.config.pdf_url)
-            data = loader.load()
+            all_splits = []
+            for pdf_url in self.config.pdf_urls:
+                logger.info(f"Loading PDF document from {pdf_url}...")
+                loader = OnlinePDFLoader(pdf_url)
+                data = loader.load()
 
-            logger.info("Splitting document into chunks...")
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=self.config.chunk_size,
-                chunk_overlap=self.config.chunk_overlap
-            )
-            all_splits = text_splitter.split_documents(data)
+                logger.info("Splitting document into chunks...")
+                text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=self.config.chunk_size,
+                    chunk_overlap=self.config.chunk_overlap
+                )
+                splits = text_splitter.split_documents(data)
+                for split in splits:
+                    split.metadata['source'] = pdf_url
+                    print(split.metadata)
+                all_splits.extend(splits)
 
             logger.info("Creating vector store...")
             with SuppressStdout():
@@ -91,6 +98,7 @@ class DocumentQA:
                 llm,
                 retriever=vectorstore.as_retriever(),
                 chain_type_kwargs={"prompt": QA_CHAIN_PROMPT},
+                return_source_documents=True,
             )
         except Exception as e:
             logger.error(f"Error setting up QA system: {str(e)}")
@@ -102,16 +110,30 @@ class DocumentQA:
             if not query.strip():
                 return "Please enter a valid query."
             logger.info(f"Processing query: {query}")
+            
+            # Ejecutar la cadena QA
             result = self.qa_chain({"query": query})
-            return result["result"]
+            
+            # Extraer respuesta y metadatos de los documentos fuente
+            source_documents = result.get("source_documents", [])
+            sources = []
+            for doc in source_documents:
+                source = doc.metadata.get("source", "Unknown")
+                sources.append(source)
+
+            # Formatear la respuesta
+            sources_text = ", ".join(set(sources)) if sources else "Unknown"
+            return f"Answer: {result['result']}\nSources: {sources_text}"
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             return f"An error occurred while processing your query: {str(e)}"
 
+
+
 def main():
     """Main function to run the Gradio interface"""
     config = QAConfig(
-        pdf_url="https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf"
+        pdf_urls=["https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf"]
     )
     qa_system = DocumentQA(config)
 
