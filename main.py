@@ -14,6 +14,7 @@ import os
 import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from transformers import pipeline
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +49,7 @@ class DocumentQA:
         """Initialize the QA system with given configuration"""
         self.config = config
         self.qa_chain = None
+        self.language_detector = pipeline("text-classification", model="papluca/xlm-roberta-base-language-detection")
         self.setup_qa_system()
 
     def setup_qa_system(self) -> None:
@@ -67,7 +69,6 @@ class DocumentQA:
                 splits = text_splitter.split_documents(data)
                 for split in splits:
                     split.metadata['source'] = pdf_url
-                    print(split.metadata)
                 all_splits.extend(splits)
 
             logger.info("Creating vector store...")
@@ -110,10 +111,28 @@ class DocumentQA:
             if not query.strip():
                 return "Please enter a valid query."
             logger.info(f"Processing query: {query}")
-            
+
+            # Detectar el idioma de la consulta
+            detected_language = self.language_detector(query)[0]['label']
+            logger.info(f"Detected language: {detected_language}")
+
+            # Traducir la consulta al inglés si no está en inglés
+            if detected_language != 'en':
+                translation_pipeline = pipeline("translation", model=f"Helsinki-NLP/opus-mt-{detected_language}-en")
+                query = translation_pipeline(query)[0]['translation_text']
+                logger.info(f"Translated query to English: {query}")
+
             # Ejecutar la cadena QA
             result = self.qa_chain({"query": query})
-            
+
+            # Obtener la respuesta generada por Llama
+            answer = result['result']
+
+            # Traducir la respuesta de nuevo al idioma original si es necesario
+            if detected_language != 'en':
+                translation_pipeline = pipeline("translation", model=f"Helsinki-NLP/opus-mt-en-{detected_language}")
+                answer = translation_pipeline(answer)[0]['translation_text']
+
             # Extraer respuesta y metadatos de los documentos fuente
             source_documents = result.get("source_documents", [])
             sources = []
@@ -123,7 +142,7 @@ class DocumentQA:
 
             # Formatear la respuesta
             sources_text = ", ".join(set(sources)) if sources else "Unknown"
-            return f"Answer: {result['result']}\nSources: {sources_text}"
+            return f"Answer: {answer}\nSources: {sources_text}"
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             return f"An error occurred while processing your query: {str(e)}"
@@ -133,7 +152,8 @@ class DocumentQA:
 def main():
     """Main function to run the Gradio interface"""
     config = QAConfig(
-        pdf_urls=["https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf"]
+        pdf_urls=["https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf",
+                  "https://arxiv.org/pdf/1706.03762"]
     )
     qa_system = DocumentQA(config)
 
