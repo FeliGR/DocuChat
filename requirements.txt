@@ -105,3 +105,4 @@ websockets==11.0.3
 Werkzeug==2.3.6
 wrapt==1.15.0
 yarl==1.9.2
+sacremoses==0.1.1
