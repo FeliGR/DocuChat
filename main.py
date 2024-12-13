@@ -14,8 +14,8 @@ import os
 import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
-from transformers import pipeline
 from deep_translator import GoogleTranslator
+from langdetect import detect
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,7 +50,6 @@ class DocumentQA:
         """Initialize the QA system with given configuration"""
         self.config = config
         self.qa_chain = None
-        self.language_detector = pipeline("text-classification", model="papluca/xlm-roberta-base-language-detection")
         self.translator = GoogleTranslator()
         self.setup_qa_system()
 
@@ -116,7 +115,7 @@ class DocumentQA:
             logger.info(f"Processing query: {query}")
 
             # Detectar el idioma
-            detected_language = self.language_detector(query)[0]['label']
+            detected_language = detect(query)
             logger.info(f"Detected language: {detected_language}")
 
             # Traducir usando Google Translate si no está en inglés

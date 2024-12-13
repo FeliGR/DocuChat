@@ -109,3 +109,4 @@ sacremoses==0.1.1
 transformers==4.47.0
 sentencepiece==0.2.0
 deep-translator==1.11.4
+langdetect==1.0.9
