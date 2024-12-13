@@ -82,8 +82,8 @@ class DocumentQA:
 
             template = """You will work as a chatbot using RAG. You will be given a context and a question.
             If you don't know the answer based on the context, reply "I do not have the information related to the query",
-            don't try to make up an answer, maybe suggest the user something related to the query based on the contexts. Limit
-            your answer up to 300 words. Be concise and to the point.
+            don't try to make up an answer, if the question is similar to the context suggest a few questions that are related to the context.
+            Limit your answer up to 300 words. Be concise and to the point. Do not mention the context in your answer.
             {context}
             Question: {question}
             Helpful Answer:"""
