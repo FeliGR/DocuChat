@@ -15,6 +15,7 @@ import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from transformers import pipeline
+from deep_translator import GoogleTranslator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +51,7 @@ class DocumentQA:
         self.config = config
         self.qa_chain = None
         self.language_detector = pipeline("text-classification", model="papluca/xlm-roberta-base-language-detection")
+        self.translator = GoogleTranslator()
         self.setup_qa_system()
 
     def setup_qa_system(self) -> None:
@@ -80,7 +82,8 @@ class DocumentQA:
 
             template = """You will work as a chatbot using RAG. You will be given a context and a question.
             If you don't know the answer based on the context, reply "I do not have the information related to the query",
-            don't try to make up an answer, maybe suggest the user something related to the query based on the contexts.
+            don't try to make up an answer, maybe suggest the user something related to the query based on the contexts. Limit
+            your answer up to 300 words. Be concise and to the point.
             {context}
             Question: {question}
             Helpful Answer:"""
@@ -112,14 +115,14 @@ class DocumentQA:
                 return "Please enter a valid query."
             logger.info(f"Processing query: {query}")
 
-            # Detectar el idioma de la consulta
+            # Detectar el idioma
             detected_language = self.language_detector(query)[0]['label']
             logger.info(f"Detected language: {detected_language}")
 
-            # Traducir la consulta al inglés si no está en inglés
+            # Traducir usando Google Translate si no está en inglés
             if detected_language != 'en':
-                translation_pipeline = pipeline("translation", model=f"Helsinki-NLP/opus-mt-{detected_language}-en")
-                query = translation_pipeline(query)[0]['translation_text']
+                translator = GoogleTranslator(source=detected_language, target='en')
+                query = translator.translate(query)
                 logger.info(f"Translated query to English: {query}")
 
             # Ejecutar la cadena QA
@@ -128,10 +131,15 @@ class DocumentQA:
             # Obtener la respuesta generada por Llama
             answer = result['result']
 
-            # Traducir la respuesta de nuevo al idioma original si es necesario
+            # Limitar la respuesta a 400 tokens
+            answer_tokens = answer.split()
+            if len(answer_tokens) > 400:
+                answer = ' '.join(answer_tokens[:400]) + '...'
+
+            # Traducir la respuesta de vuelta al idioma original
             if detected_language != 'en':
-                translation_pipeline = pipeline("translation", model=f"Helsinki-NLP/opus-mt-en-{detected_language}")
-                answer = translation_pipeline(answer)[0]['translation_text']
+                translator = GoogleTranslator(source='en', target=detected_language)
+                answer = translator.translate(answer)
 
             # Extraer respuesta y metadatos de los documentos fuente
             source_documents = result.get("source_documents", [])
