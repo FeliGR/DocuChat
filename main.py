@@ -142,7 +142,7 @@ class DocumentQA:
 
             # Formatear la respuesta
             sources_text = ", ".join(set(sources)) if sources else "Unknown"
-            return f"Answer: {answer}\nSources: {sources_text}"
+            return f"{answer}\nSources: {sources_text}"
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             return f"An error occurred while processing your query: {str(e)}"
@@ -161,8 +161,8 @@ def main():
         fn=qa_system.answer_query,
         inputs=gr.inputs.Textbox(label="Enter your query"),
         outputs=gr.outputs.Textbox(label="Answer"),
-        title="Document QA with LangChain and Gradio",
-        description="Ask questions based on the content of the loaded document.",
+        title="Document QA with RAG",
+        description="Ask questions based on the content of the loaded documents.",
         allow_flagging="never",
         theme=config.theme,
     )
