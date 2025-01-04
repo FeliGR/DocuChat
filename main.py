@@ -159,8 +159,25 @@ class DocumentQA:
 def main():
     """Main function to run the Gradio interface"""
     config = QAConfig(
-        pdf_urls=["https://d3n8a8pro7vhmx.cloudfront.net/foodday/pages/24/attachments/original/1341506994/FoodDay_Cookbook.pdf",
-                  "https://arxiv.org/pdf/1706.03762"]
+        pdf_urls=["https://github.com/FeliGR/DocuChat/raw/main/Andalusia.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Aragon.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Asturias.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Balearic_Islands.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Basque_Country_(autonomous_community).pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Canary_Islands.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Cantabria.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Castile_and_León.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Castilla–La_Mancha.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Catalonia.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Ceuta.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Community_of_Madrid.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Extremadura.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Galicia_(Spain).pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/La_Rioja.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Melilla.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Navarre.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Region_of_Murcia.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Valencian_Community.pdf"]
     )
     qa_system = DocumentQA(config)
 
