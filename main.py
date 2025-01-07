@@ -177,7 +177,18 @@ def main():
                   "https://github.com/FeliGR/DocuChat/raw/main/Melilla.pdf",
                   "https://github.com/FeliGR/DocuChat/raw/main/Navarre.pdf",
                   "https://github.com/FeliGR/DocuChat/raw/main/Region_of_Murcia.pdf",
-                  "https://github.com/FeliGR/DocuChat/raw/main/Valencian_Community.pdf"]
+                  "https://github.com/FeliGR/DocuChat/raw/main/Valencian_Community.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Political_divisions_of_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Autonomous_communities_of_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Tourism_in_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Spanish_cuisine.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/History_of_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/List_of_World_Heritage_Sites_in_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Climate_of_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Transport_in_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Rail_transport_in_Spain.pdf",
+                  "https://github.com/FeliGR/DocuChat/raw/main/Culture_of_Spain.pdf"]
     )
     qa_system = DocumentQA(config)
 
