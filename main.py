@@ -79,9 +79,11 @@ class DocumentQA:
                     embedding=GPT4AllEmbeddings()
                 )
 
-            template = """You will work as a chatbot using RAG. You will be given a context and a question.
+            template = """You will work as a chatbot using RAG. You will be given a context and a question from a tourist that is traveling to Spain.
             If you don't know the answer based on the context, reply "I do not have the information related to the query",
-            don't try to make up an answer, if the question is similar to the context suggest a few questions that are related to the context.
+            don't try to make up an answer. However, you may find relevant links between information in different documents,
+            and you must leverage this to generate complete and useful answers. Also, if the question is similar to the
+            context suggest a few questions that are related to the context.
             Limit your answer up to 300 words. Be concise and to the point. Do not mention the context in your answer.
             {context}
             Question: {question}
